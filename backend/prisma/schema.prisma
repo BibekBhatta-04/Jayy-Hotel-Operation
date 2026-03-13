@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  RECEPTIONIST
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+  MAINTENANCE
+  DIRTY
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  ONLINE
+  OTHER
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String
+  role         UserRole      @default(RECEPTIONIST)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[] @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model RoomType {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String?
+  basePrice    Decimal  @db.Decimal(10, 2)
+  maxOccupancy Int      @default(2)
+  amenities    String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  rooms        Room[]
+
+  @@map("room_types")
+}
+
+model Room {
+  id           String        @id @default(uuid())
+  roomNumber   String        @unique
+  floor        Int
+  status       RoomStatus    @default(AVAILABLE)
+  notes        String?
+  roomTypeId   String
+  roomType     RoomType      @relation(fields: [roomTypeId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+
+  @@map("rooms")
+}
+
+model Guest {
+  id            String        @id @default(uuid())
+  name          String
+  email         String?
+  phone         String
+  idNumber      String?
+  address       String?
+  maritalStatus String?
+  occupancyType String?       @default("Single")
+  nationality   String?
+  passportNo    String?
+  pax           Int?          @default(1)
+  tariff        Decimal?      @db.Decimal(10, 2)
+  plan          String?       @default("EP")
+  contactNo     String?
+  agent         String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  reservations  Reservation[]
+
+  @@map("guests")
+}
+
+model Reservation {
+  id              String            @id @default(uuid())
+  roomId          String
+  room            Room              @relation(fields: [roomId], references: [id])
+  guestId         String
+  guest           Guest             @relation(fields: [guestId], references: [id])
+  checkInDate     DateTime
+  checkOutDate    DateTime
+  status          ReservationStatus @default(CONFIRMED)
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod     @default(CASH)
+  specialRequests String?
+  adults          Int               @default(1)
+  children        Int               @default(0)
+  createdById     String
+  createdBy       User              @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  invoice         Invoice?
+
+  @@map("reservations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  reservationId String        @unique
+  reservation   Reservation   @relation(fields: [reservationId], references: [id])
+  subtotal      Decimal       @db.Decimal(10, 2)
+  taxRate       Decimal       @db.Decimal(5, 2) @default(13.00)
+  taxAmount     Decimal       @db.Decimal(10, 2)
+  discount      Decimal       @db.Decimal(10, 2) @default(0)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(CASH)
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         InvoiceItem[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  totalPrice  Decimal @db.Decimal(10, 2)
+
+  @@map("invoice_items")
+}

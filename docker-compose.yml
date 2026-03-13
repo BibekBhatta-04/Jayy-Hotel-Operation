@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hotel_jay_suites
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - '3001:3001'
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/hotel_jay_suites?schema=public
+      JWT_SECRET: hotel-jay-suites-secret-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      PORT: 3001
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - '5173:80'
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
