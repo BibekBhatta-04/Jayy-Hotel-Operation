@@ -10,6 +10,7 @@ import guestRoutes from './routes/guests.routes';
 import reservationRoutes from './routes/reservations.routes';
 import invoiceRoutes from './routes/invoices.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import { startKeepAlive } from './utils/keepAlive';
 
 const app = express();
 
@@ -42,6 +43,11 @@ app.use(errorHandler);
 app.listen(config.port, () => {
   console.log(`Hotel Jay Suites API running on port ${config.port}`);
   console.log(`Environment: ${config.nodeEnv}`);
+  
+  // Start the background cron job to prevent Render from sleeping
+  if (config.nodeEnv === 'production') {
+    startKeepAlive();
+  }
 });
 
 export default app;
