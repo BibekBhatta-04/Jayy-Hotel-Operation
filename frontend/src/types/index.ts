@@ -24,7 +24,7 @@ export interface Room {
   roomType: RoomType;
 }
 
-export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'OUT_OF_ORDER';
+export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'OUT_OF_ORDER' | 'DIRTY';
 
 export interface Guest {
   id: string;

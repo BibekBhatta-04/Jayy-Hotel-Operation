@@ -25,6 +25,7 @@ export function getStatusColor(status: string): string {
     OCCUPIED: 'bg-orange-100 text-orange-700 border-orange-200',
     RESERVED: 'bg-hotel-info/10 text-hotel-info border-hotel-info/20',
     OUT_OF_ORDER: 'bg-hotel-danger/10 text-hotel-danger border-hotel-danger/20',
+    DIRTY: 'bg-amber-100 text-amber-700 border-amber-200',
     CONFIRMED: 'bg-hotel-info/10 text-hotel-info border-hotel-info/20',
     CHECKED_IN: 'bg-hotel-success/10 text-hotel-success border-hotel-success/20',
     CHECKED_OUT: 'bg-hotel-gray/10 text-hotel-gray border-hotel-gray/20',
@@ -41,6 +42,7 @@ export function getStatusColor(status: string): string {
 export function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     OUT_OF_ORDER: 'Out of Order',
+    DIRTY: 'Dirty',
     CHECKED_IN: 'Checked In',
     CHECKED_OUT: 'Checked Out',
     NO_SHOW: 'No Show',

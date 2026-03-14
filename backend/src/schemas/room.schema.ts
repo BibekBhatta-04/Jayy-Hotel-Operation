@@ -13,7 +13,7 @@ export const createRoomSchema = z.object({
   roomNumber: z.string().min(1, 'Room number is required'),
   floor: z.number().int().min(0, 'Floor must be 0 or higher'),
   roomTypeId: z.string().uuid('Invalid room type ID'),
-  status: z.enum(['AVAILABLE', 'OCCUPIED', 'RESERVED', 'OUT_OF_ORDER']).default('AVAILABLE'),
+  status: z.enum(['AVAILABLE', 'OCCUPIED', 'RESERVED', 'OUT_OF_ORDER', 'DIRTY']).default('AVAILABLE'),
   notes: z.string().optional(),
 });
 

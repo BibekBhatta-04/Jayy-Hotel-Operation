@@ -13,6 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   OCCUPIED: '#F59E0B',
   RESERVED: '#3B82F6',
   OUT_OF_ORDER: '#EF4444',
+  DIRTY: '#D97706',
 };
 
 export default function DashboardPage() {

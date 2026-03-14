@@ -20,6 +20,7 @@ enum RoomStatus {
   OCCUPIED
   RESERVED
   OUT_OF_ORDER
+  DIRTY
 }
 
 enum ReservationStatus {

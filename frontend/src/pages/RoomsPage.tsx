@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, X, Edit2, Trash2, Users, Home, BedDouble, Crown } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Users, Home, BedDouble, Crown, CheckCircle, UserCheck, CalendarClock, AlertTriangle, SprayCan } from 'lucide-react';
 import { useRooms, useRoomTypes, useCreateRoom, useUpdateRoom, useDeleteRoom, useCreateRoomType } from '@/hooks/useRooms';
 import { cn, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import type { Room, RoomType, RoomStatus } from '@/types';
 
-const ROOM_STATUSES: RoomStatus[] = ['AVAILABLE', 'OCCUPIED', 'RESERVED', 'OUT_OF_ORDER'];
+const ROOM_STATUSES: RoomStatus[] = ['AVAILABLE', 'OCCUPIED', 'RESERVED', 'OUT_OF_ORDER', 'DIRTY'];
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   Double:  { icon: <BedDouble className="w-5 h-5" />, color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
@@ -28,6 +28,15 @@ const STATUS_DOT: Record<string, string> = {
   OCCUPIED:     '#F59E0B',
   RESERVED:     '#3B82F6',
   OUT_OF_ORDER: '#EF4444',
+  DIRTY:        '#D97706',
+};
+
+const STATUS_ICON: Record<string, React.ReactNode> = {
+  AVAILABLE:    <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />,
+  OCCUPIED:     <UserCheck className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />,
+  RESERVED:     <CalendarClock className="w-3.5 h-3.5" style={{ color: '#3B82F6' }} />,
+  OUT_OF_ORDER: <AlertTriangle className="w-3.5 h-3.5" style={{ color: '#EF4444' }} />,
+  DIRTY:        <SprayCan className="w-3.5 h-3.5" style={{ color: '#D97706' }} />,
 };
 
 export default function RoomsPage() {
@@ -114,7 +123,7 @@ export default function RoomsPage() {
       <div className="room-status-legend">
         {Object.entries(statusCounts).sort().map(([status, count]) => (
           <div key={status} className="room-legend-item" onClick={() => setStatusFilter(statusFilter === status ? '' : status)} style={{ cursor: 'pointer', opacity: statusFilter && statusFilter !== status ? 0.4 : 1 }}>
-            <span className="room-status-dot" style={{ background: STATUS_DOT[status] || '#9CA3AF' }} />
+            {STATUS_ICON[status] || <span className="room-status-dot" style={{ background: STATUS_DOT[status] || '#9CA3AF' }} />}
             <span style={{ fontSize: '12px', fontWeight: 500 }}>{getStatusLabel(status)}</span>
             <span style={{ fontSize: '12px', color: 'var(--color-hotel-gray)' }}>({count})</span>
           </div>
@@ -152,7 +161,7 @@ export default function RoomsPage() {
                   const occ = OCCUPANCY[room.roomType?.name] || `${room.roomType?.maxOccupancy || '?'} guests`;
                   return (
                     <div key={room.id} className="room-card" onClick={() => openEdit(room)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && openEdit(room)} style={{ animationDelay: `${idx * 40}ms` }}>
-                      <div className="room-card-status" style={{ background: STATUS_DOT[room.status] || '#9CA3AF' }} title={getStatusLabel(room.status)} />
+                      <div className="room-card-status" title={getStatusLabel(room.status)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{STATUS_ICON[room.status] || <div style={{ width: '8px', height: '8px', borderRadius: '4px', background: STATUS_DOT[room.status] || '#9CA3AF' }} />}</div>
                       <div className="room-card-icon" style={{ background: meta.bg, color: meta.color }}>{meta.icon}</div>
                       <div className="room-card-number">{room.roomNumber}</div>
                       <div className="room-card-type">{room.roomType?.name} Room</div>

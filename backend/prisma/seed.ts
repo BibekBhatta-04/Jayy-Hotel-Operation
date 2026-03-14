@@ -102,18 +102,18 @@ async function main() {
   const roomsData = [
     { roomNumber: '101', floor: 1, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
     { roomNumber: '102', floor: 1, roomTypeId: twinType.id, status: 'OCCUPIED' as RoomStatus },
-    { roomNumber: '103', floor: 1, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '103', floor: 1, roomTypeId: doubleType.id, status: 'DIRTY' as RoomStatus },
     { roomNumber: '104', floor: 1, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
     { roomNumber: '201', floor: 2, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
     { roomNumber: '202', floor: 2, roomTypeId: twinType.id, status: 'RESERVED' as RoomStatus },
     { roomNumber: '203', floor: 2, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
     { roomNumber: '204', floor: 2, roomTypeId: doubleType.id, status: 'OCCUPIED' as RoomStatus },
     { roomNumber: '301', floor: 3, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '302', floor: 3, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '302', floor: 3, roomTypeId: twinType.id, status: 'DIRTY' as RoomStatus },
     { roomNumber: '303', floor: 3, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '304', floor: 3, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '304', floor: 3, roomTypeId: twinType.id, status: 'RESERVED' as RoomStatus },
     { roomNumber: '401', floor: 4, roomTypeId: tripleType.id, status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '402', floor: 4, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '402', floor: 4, roomTypeId: twinType.id, status: 'OCCUPIED' as RoomStatus },
     { roomNumber: '403', floor: 4, roomTypeId: doubleType.id, status: 'OUT_OF_ORDER' as RoomStatus },
     { roomNumber: '404', floor: 4, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
     { roomNumber: '501', floor: 5, roomTypeId: tripleType.id, status: 'AVAILABLE' as RoomStatus },
@@ -152,68 +152,80 @@ async function main() {
 
   console.log('Guests seeded');
 
-  // ─── Reservations ───────────────────────────────────
+  // ─── Reservations (8 total – mix of statuses) ──────
   const today = new Date();
   const reservationsData = [
+    // 1) Rajesh – CHECKED_IN in Room 102
     {
-      roomId: rooms[1].id,
-      guestId: guests[0].id,
+      roomId: rooms[1].id, guestId: guests[0].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
       status: 'CHECKED_IN' as ReservationStatus,
-      totalAmount: 10500,
-      paymentMethod: 'CASH' as PaymentMethod,
-      adults: 2,
-      children: 0,
-      createdById: admin.id,
+      totalAmount: 10500, paymentMethod: 'CASH' as PaymentMethod,
+      adults: 2, children: 0, createdById: admin.id,
     },
+    // 2) John – CONFIRMED for Room 202 (reserved)
     {
-      roomId: rooms[5].id,
-      guestId: guests[2].id,
+      roomId: rooms[5].id, guestId: guests[2].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4),
       status: 'CONFIRMED' as ReservationStatus,
-      totalAmount: 10500,
-      paymentMethod: 'CARD' as PaymentMethod,
-      adults: 2,
-      children: 0,
-      createdById: receptionist.id,
+      totalAmount: 10500, paymentMethod: 'CARD' as PaymentMethod,
+      adults: 2, children: 0, createdById: receptionist.id,
     },
+    // 3) David – CHECKED_IN in Room 204
     {
-      roomId: rooms[7].id,
-      guestId: guests[4].id,
+      roomId: rooms[7].id, guestId: guests[4].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2),
       status: 'CHECKED_IN' as ReservationStatus,
-      totalAmount: 10500,
-      paymentMethod: 'CASH' as PaymentMethod,
-      adults: 2,
-      children: 2,
-      createdById: admin.id,
+      totalAmount: 15000, paymentMethod: 'CASH' as PaymentMethod,
+      adults: 2, children: 2, createdById: admin.id,
     },
+    // 4) Priya – CHECKED_OUT from Room 103 (room now DIRTY)
     {
-      roomId: rooms[2].id,
-      guestId: guests[1].id,
+      roomId: rooms[2].id, guestId: guests[1].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 10),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7),
       status: 'CHECKED_OUT' as ReservationStatus,
-      totalAmount: 10500,
-      paymentMethod: 'CASH' as PaymentMethod,
-      adults: 1,
-      children: 0,
-      createdById: admin.id,
+      totalAmount: 10500, paymentMethod: 'CASH' as PaymentMethod,
+      adults: 1, children: 0, createdById: admin.id,
     },
+    // 5) Sita – CONFIRMED for Room 101
     {
-      roomId: rooms[0].id,
-      guestId: guests[5].id,
+      roomId: rooms[0].id, guestId: guests[5].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3),
       status: 'CONFIRMED' as ReservationStatus,
-      totalAmount: 16500,
-      paymentMethod: 'ESEWA' as PaymentMethod,
-      adults: 3,
-      children: 1,
-      createdById: receptionist.id,
+      totalAmount: 16500, paymentMethod: 'ESEWA' as PaymentMethod,
+      adults: 3, children: 1, createdById: receptionist.id,
+    },
+    // 6) Anita – CHECKED_OUT from Room 302 (room now DIRTY)
+    {
+      roomId: rooms[9].id, guestId: guests[3].id,
+      checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6),
+      checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 4),
+      status: 'CHECKED_OUT' as ReservationStatus,
+      totalAmount: 7000, paymentMethod: 'FONEPAY' as PaymentMethod,
+      adults: 1, children: 0, createdById: admin.id,
+    },
+    // 7) Michael – CHECKED_IN in Room 402
+    {
+      roomId: rooms[13].id, guestId: guests[6].id,
+      checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+      checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 5),
+      status: 'CHECKED_IN' as ReservationStatus,
+      totalAmount: 17500, paymentMethod: 'CARD' as PaymentMethod,
+      adults: 1, children: 0, createdById: receptionist.id,
+    },
+    // 8) Kamala – CONFIRMED for Room 304 (reserved)
+    {
+      roomId: rooms[11].id, guestId: guests[7].id,
+      checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2),
+      checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 5),
+      status: 'CONFIRMED' as ReservationStatus,
+      totalAmount: 10500, paymentMethod: 'MOBILE_BANKING' as PaymentMethod,
+      adults: 2, children: 0, createdById: admin.id,
     },
   ];
 
@@ -229,7 +241,7 @@ async function main() {
   await prisma.invoice.create({
     data: {
       invoiceNumber: 'INV-00001',
-      reservationId: reservations[3].id,
+      reservationId: reservations[3].id, // Priya checkout
       subtotal: 10500,
       taxRate: 13,
       taxAmount: 1365,
@@ -248,6 +260,28 @@ async function main() {
     },
   });
 
+  await prisma.invoice.create({
+    data: {
+      invoiceNumber: 'INV-00002',
+      reservationId: reservations[5].id, // Anita checkout
+      subtotal: 7000,
+      taxRate: 13,
+      taxAmount: 910,
+      totalAmount: 7910,
+      paymentStatus: 'PAID',
+      paymentMethod: 'FONEPAY',
+      paidAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 4),
+      items: {
+        create: {
+          description: 'Room 302 (Twin) - 2 night(s)',
+          quantity: 2,
+          unitPrice: 3500,
+          totalPrice: 7000,
+        },
+      },
+    },
+  });
+
   console.log('Invoices seeded');
 
   // ─── Sample Notifications ──────────────────────────
@@ -256,6 +290,10 @@ async function main() {
       { type: 'RESERVATION', title: 'Reservation Created', message: 'Reservation for Rajesh Sharma in Room 102 created', userId: admin.id },
       { type: 'CHECK_IN', title: 'Guest Checked In', message: 'Rajesh Sharma checked into Room 102', userId: admin.id },
       { type: 'GUEST', title: 'New Guest Registered', message: 'John Smith has been added to the guest list', userId: admin.id },
+      { type: 'RESERVATION', title: 'New Booking', message: 'Michael Brown confirmed for Room 402', userId: receptionist.id },
+      { type: 'CHECK_IN', title: 'Guest Checked In', message: 'Michael Brown checked into Room 402', userId: receptionist.id },
+      { type: 'CHECK_OUT', title: 'Guest Checked Out', message: 'Anita Gurung checked out from Room 302', userId: admin.id },
+      { type: 'ROOM', title: 'Room Status Changed', message: 'Room 403 marked as Out of Order', userId: admin.id },
     ],
   });
 
@@ -267,10 +305,10 @@ async function main() {
   console.log('  Receptionist: reception@jaysuites.com / reception123');
   console.log('');
   console.log('Room layout:');
-  console.log('  Floor 1: 101(Family), 102(Twin), 103(Double), 104(Double)');
-  console.log('  Floor 2: 201(Family), 202(Twin), 203(Double), 204(Double)');
-  console.log('  Floor 3: 301(Family), 302(Twin), 303(Double), 304(Twin)');
-  console.log('  Floor 4: 401(Triple), 402(Twin), 403(Double-OOO), 404(Double)');
+  console.log('  Floor 1: 101(Family), 102(Twin-OCC), 103(Double-DIRTY), 104(Double)');
+  console.log('  Floor 2: 201(Family), 202(Twin-RESV), 203(Double), 204(Double-OCC)');
+  console.log('  Floor 3: 301(Family), 302(Twin-DIRTY), 303(Double), 304(Twin-RESV)');
+  console.log('  Floor 4: 401(Triple), 402(Twin-OCC), 403(Double-OOO), 404(Double)');
   console.log('  Floor 5: 501(Triple), 502(Twin), 503(Double), 504(Double)');
   console.log('  Floor 6: 601(Suite), 603(Double)');
 }
