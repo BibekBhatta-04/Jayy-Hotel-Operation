@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { reservationController } from '../controllers/reservations.controller';
 import { validate } from '../middleware/validate';
-import { createReservationSchema, updateReservationSchema } from '../schemas/reservation.schema';
+import { createReservationSchema, updateReservationSchema, shiftRoomSchema } from '../schemas/reservation.schema';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -16,5 +16,6 @@ router.put('/:id', validate(updateReservationSchema), (req, res, next) => reserv
 router.post('/:id/check-in', (req, res, next) => reservationController.checkIn(req, res, next));
 router.post('/:id/check-out', (req, res, next) => reservationController.checkOut(req, res, next));
 router.post('/:id/cancel', (req, res, next) => reservationController.cancel(req, res, next));
+router.post('/:id/shift-room', validate(shiftRoomSchema), (req, res, next) => reservationController.shiftRoom(req, res, next));
 
 export default router;

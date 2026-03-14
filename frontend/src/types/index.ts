@@ -9,7 +9,6 @@ export interface RoomType {
   id: string;
   name: string;
   description?: string;
-  basePrice: number;
   maxOccupancy: number;
   amenities: string[];
   _count?: { rooms: number };
@@ -25,7 +24,7 @@ export interface Room {
   roomType: RoomType;
 }
 
-export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING' | 'MAINTENANCE' | 'DIRTY';
+export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'OUT_OF_ORDER';
 
 export interface Guest {
   id: string;
@@ -39,7 +38,8 @@ export interface Guest {
   nationality?: string;
   passportNo?: string;
   pax?: number;
-  tariff?: number;
+  maleCount?: number;
+  femaleCount?: number;
   plan?: string;
   contactNo?: string;
   agent?: string;
@@ -50,7 +50,7 @@ export interface Guest {
 
 export type ReservationStatus = 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'NO_SHOW';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'PARTIAL' | 'REFUNDED';
-export type PaymentMethod = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BANK_TRANSFER' | 'ONLINE' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'CARD' | 'ESEWA' | 'FONEPAY' | 'MOBILE_BANKING';
 
 export interface Reservation {
   id: string;
@@ -97,6 +97,16 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  userId: string;
+  createdAt: string;
 }
 
 export interface DashboardStats {

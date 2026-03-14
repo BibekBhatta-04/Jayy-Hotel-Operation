@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { ToastProvider } from '@/components/ui/Toast';
 import AppLayout from '@/components/layout/AppLayout';
 
 // Lazy load all pages for code splitting
@@ -46,31 +47,33 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-                <Route path="rooms" element={<RoomsPage />} />
-                <Route path="guests" element={<GuestsPage />} />
-                <Route path="reservations" element={<ReservationsPage />} />
-                <Route path="invoices" element={<InvoicesPage />} />
-                <Route path="analytics" element={<PlaceholderPage />} />
-                <Route path="restaurant" element={<PlaceholderPage />} />
-                <Route path="inventory" element={<PlaceholderPage />} />
-                <Route path="accounting" element={<PlaceholderPage />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<DashboardPage />} />
+                  <Route path="rooms" element={<RoomsPage />} />
+                  <Route path="guests" element={<GuestsPage />} />
+                  <Route path="reservations" element={<ReservationsPage />} />
+                  <Route path="invoices" element={<InvoicesPage />} />
+                  <Route path="analytics" element={<PlaceholderPage />} />
+                  <Route path="restaurant" element={<PlaceholderPage />} />
+                  <Route path="inventory" element={<PlaceholderPage />} />
+                  <Route path="accounting" element={<PlaceholderPage />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

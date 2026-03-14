@@ -59,7 +59,7 @@ export class ReservationController {
 
   async checkIn(req: Request, res: Response, next: NextFunction) {
     try {
-      const reservation = await reservationService.checkIn(paramId(req));
+      const reservation = await reservationService.checkIn(paramId(req), req.user!.userId);
       res.json(reservation);
     } catch (err: any) {
       err.statusCode ? res.status(err.statusCode).json({ error: err.message }) : next(err);
@@ -68,7 +68,7 @@ export class ReservationController {
 
   async checkOut(req: Request, res: Response, next: NextFunction) {
     try {
-      const reservation = await reservationService.checkOut(paramId(req));
+      const reservation = await reservationService.checkOut(paramId(req), req.user!.userId);
       res.json(reservation);
     } catch (err: any) {
       err.statusCode ? res.status(err.statusCode).json({ error: err.message }) : next(err);
@@ -77,7 +77,16 @@ export class ReservationController {
 
   async cancel(req: Request, res: Response, next: NextFunction) {
     try {
-      const reservation = await reservationService.cancel(paramId(req));
+      const reservation = await reservationService.cancel(paramId(req), req.user!.userId);
+      res.json(reservation);
+    } catch (err: any) {
+      err.statusCode ? res.status(err.statusCode).json({ error: err.message }) : next(err);
+    }
+  }
+
+  async shiftRoom(req: Request, res: Response, next: NextFunction) {
+    try {
+      const reservation = await reservationService.shiftRoom(paramId(req), req.body.newRoomId, req.user!.userId);
       res.json(reservation);
     } catch (err: any) {
       err.statusCode ? res.status(err.statusCode).json({ error: err.message }) : next(err);

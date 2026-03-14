@@ -1,6 +1,6 @@
 import prisma from '../utils/prisma';
 import { CreateReservationInput, UpdateReservationInput } from '../schemas/reservation.schema';
-import { Decimal } from '@prisma/client/runtime/library';
+import { notificationService } from './notifications.service';
 
 export class ReservationService {
   async getReservations(filters?: { status?: string; from?: string; to?: string }) {
@@ -56,7 +56,6 @@ export class ReservationService {
   }
 
   async createReservation(data: CreateReservationInput, userId: string) {
-    // Check for double booking
     const conflict = await this.checkRoomAvailability(
       data.roomId,
       new Date(data.checkInDate),
@@ -89,10 +88,17 @@ export class ReservationService {
       },
     });
 
-    // Update room status to RESERVED
     await prisma.room.update({
       where: { id: data.roomId },
       data: { status: 'RESERVED' },
+    });
+
+    // Notification
+    await notificationService.create({
+      type: 'RESERVATION',
+      title: 'New Reservation',
+      message: `Reservation created for ${reservation.guest.name} in Room ${reservation.room.roomNumber}`,
+      userId,
     });
 
     return reservation;
@@ -106,7 +112,6 @@ export class ReservationService {
       throw Object.assign(new Error('Cannot modify a completed or cancelled reservation'), { statusCode: 400 });
     }
 
-    // If dates changed, check availability
     if (data.checkInDate || data.checkOutDate) {
       const checkIn = data.checkInDate ? new Date(data.checkInDate) : reservation.checkInDate;
       const checkOut = data.checkOutDate ? new Date(data.checkOutDate) : reservation.checkOutDate;
@@ -131,15 +136,23 @@ export class ReservationService {
     });
   }
 
-  async checkIn(id: string) {
+  async checkIn(id: string, userId: string) {
     const reservation = await prisma.reservation.findUnique({
       where: { id },
-      include: { room: true },
+      include: { room: true, guest: true },
     });
 
     if (!reservation) throw Object.assign(new Error('Reservation not found'), { statusCode: 404 });
     if (reservation.status !== 'CONFIRMED') {
       throw Object.assign(new Error('Only confirmed reservations can be checked in'), { statusCode: 400 });
+    }
+
+    // Block check-in if room is Out of Order
+    if (reservation.room.status === 'OUT_OF_ORDER') {
+      throw Object.assign(
+        new Error('Room is currently Out of Order. Check-in is not allowed.'),
+        { statusCode: 400 }
+      );
     }
 
     const [updated] = await prisma.$transaction([
@@ -154,10 +167,18 @@ export class ReservationService {
       }),
     ]);
 
+    // Notification
+    await notificationService.create({
+      type: 'CHECK_IN',
+      title: 'Guest Checked In',
+      message: `${reservation.guest.name} checked into Room ${reservation.room.roomNumber}`,
+      userId,
+    });
+
     return updated;
   }
 
-  async checkOut(id: string) {
+  async checkOut(id: string, userId: string) {
     const reservation = await prisma.reservation.findUnique({
       where: { id },
       include: { room: { include: { roomType: true } }, guest: true, invoice: true },
@@ -168,18 +189,15 @@ export class ReservationService {
       throw Object.assign(new Error('Only checked-in reservations can be checked out'), { statusCode: 400 });
     }
 
-    // Calculate nights
     const checkIn = new Date(reservation.checkInDate);
     const checkOut = new Date(reservation.checkOutDate);
     const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
 
-    const roomRate = Number(reservation.room.roomType.basePrice);
-    const subtotal = roomRate * nights;
+    const subtotal = Number(reservation.totalAmount);
     const taxRate = 13;
     const taxAmount = subtotal * (taxRate / 100);
     const totalAmount = subtotal + taxAmount;
 
-    // Generate invoice number
     const invoiceCount = await prisma.invoice.count();
     const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(5, '0')}`;
 
@@ -191,9 +209,8 @@ export class ReservationService {
       }),
       prisma.room.update({
         where: { id: reservation.roomId },
-        data: { status: 'DIRTY' },
+        data: { status: 'AVAILABLE' },
       }),
-      // Create invoice if not exists
       ...(reservation.invoice
         ? []
         : [
@@ -205,12 +222,14 @@ export class ReservationService {
                 taxRate,
                 taxAmount,
                 totalAmount,
+                paymentStatus: 'PAID',
                 paymentMethod: reservation.paymentMethod,
+                paidAt: new Date(),
                 items: {
                   create: {
                     description: `Room ${reservation.room.roomNumber} (${reservation.room.roomType.name}) - ${nights} night(s)`,
                     quantity: nights,
-                    unitPrice: roomRate,
+                    unitPrice: subtotal / nights,
                     totalPrice: subtotal,
                   },
                 },
@@ -219,13 +238,24 @@ export class ReservationService {
           ]),
     ]);
 
+    // Notification
+    await notificationService.create({
+      type: 'CHECK_OUT',
+      title: 'Guest Checked Out',
+      message: `${reservation.guest.name} checked out of Room ${reservation.room.roomNumber}`,
+      userId,
+    });
+
     return updated;
   }
 
-  async cancel(id: string) {
-    const reservation = await prisma.reservation.findUnique({ where: { id } });
-    if (!reservation) throw Object.assign(new Error('Reservation not found'), { statusCode: 404 });
+  async cancel(id: string, userId: string) {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id },
+      include: { room: true, guest: true },
+    });
 
+    if (!reservation) throw Object.assign(new Error('Reservation not found'), { statusCode: 404 });
     if (['CHECKED_OUT', 'CANCELLED'].includes(reservation.status)) {
       throw Object.assign(new Error('Reservation is already completed or cancelled'), { statusCode: 400 });
     }
@@ -241,6 +271,60 @@ export class ReservationService {
         data: { status: 'AVAILABLE' },
       }),
     ]);
+
+    // Notification
+    await notificationService.create({
+      type: 'CANCEL',
+      title: 'Reservation Cancelled',
+      message: `Reservation for ${reservation.guest.name} in Room ${reservation.room.roomNumber} was cancelled`,
+      userId,
+    });
+
+    return updated;
+  }
+
+  async shiftRoom(reservationId: string, newRoomId: string, userId: string) {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { room: true, guest: true },
+    });
+
+    if (!reservation) throw Object.assign(new Error('Reservation not found'), { statusCode: 404 });
+    if (reservation.status !== 'CHECKED_IN') {
+      throw Object.assign(new Error('Only checked-in reservations can be shifted'), { statusCode: 400 });
+    }
+
+    const newRoom = await prisma.room.findUnique({ where: { id: newRoomId } });
+    if (!newRoom) throw Object.assign(new Error('New room not found'), { statusCode: 404 });
+    if (newRoom.status !== 'AVAILABLE') {
+      throw Object.assign(new Error('New room is not available'), { statusCode: 400 });
+    }
+
+    const oldRoomNumber = reservation.room.roomNumber;
+
+    const [updated] = await prisma.$transaction([
+      prisma.reservation.update({
+        where: { id: reservationId },
+        data: { roomId: newRoomId },
+        include: { room: { include: { roomType: true } }, guest: true },
+      }),
+      prisma.room.update({
+        where: { id: reservation.roomId },
+        data: { status: 'AVAILABLE' },
+      }),
+      prisma.room.update({
+        where: { id: newRoomId },
+        data: { status: 'OCCUPIED' },
+      }),
+    ]);
+
+    // Notification
+    await notificationService.create({
+      type: 'ROOM_SHIFT',
+      title: 'Room Shifted',
+      message: `${reservation.guest.name} moved from Room ${oldRoomNumber} to Room ${newRoom.roomNumber}`,
+      userId,
+    });
 
     return updated;
   }

@@ -32,3 +32,11 @@ export function useUpdateGuest() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['guests'] }),
   });
 }
+
+export function useDeleteGuest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await api.delete(`/guests/${id}`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['guests'] }),
+  });
+}

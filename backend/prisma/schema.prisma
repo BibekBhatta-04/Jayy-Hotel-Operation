@@ -19,9 +19,7 @@ enum RoomStatus {
   AVAILABLE
   OCCUPIED
   RESERVED
-  CLEANING
-  MAINTENANCE
-  DIRTY
+  OUT_OF_ORDER
 }
 
 enum ReservationStatus {
@@ -41,25 +39,25 @@ enum PaymentStatus {
 
 enum PaymentMethod {
   CASH
-  CREDIT_CARD
-  DEBIT_CARD
-  BANK_TRANSFER
-  ONLINE
-  OTHER
+  CARD
+  ESEWA
+  FONEPAY
+  MOBILE_BANKING
 }
 
 // ─── Models ──────────────────────────────────────────────
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  password     String
-  name         String
-  role         UserRole      @default(RECEPTIONIST)
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  reservations Reservation[] @relation("CreatedBy")
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          UserRole       @default(RECEPTIONIST)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  reservations  Reservation[]  @relation("CreatedBy")
+  notifications Notification[]
 
   @@map("users")
 }
@@ -68,7 +66,6 @@ model RoomType {
   id           String   @id @default(uuid())
   name         String   @unique
   description  String?
-  basePrice    Decimal  @db.Decimal(10, 2)
   maxOccupancy Int      @default(2)
   amenities    String[] @default([])
   createdAt    DateTime @default(now())
@@ -105,7 +102,8 @@ model Guest {
   nationality   String?
   passportNo    String?
   pax           Int?          @default(1)
-  tariff        Decimal?      @db.Decimal(10, 2)
+  maleCount     Int?          @default(0)
+  femaleCount   Int?          @default(0)
   plan          String?       @default("EP")
   contactNo     String?
   agent         String?
@@ -171,4 +169,17 @@ model InvoiceItem {
   totalPrice  Decimal @db.Decimal(10, 2)
 
   @@map("invoice_items")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
 }

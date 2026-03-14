@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LogIn, LogOut as LogOutIcon, Percent, DollarSign,
-  BedDouble, Users, CalendarDays, TrendingUp
+  BedDouble, Users, CalendarDays, TrendingUp, Zap
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useDashboardStats, useBookingTrends, useRoomStatusOverview, useRecentReservations } from '@/hooks/useDashboard';
@@ -10,11 +10,9 @@ import { formatCurrency, formatDate, formatDateShort, getStatusColor, getStatusL
 
 const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: '#10B981',
-  OCCUPIED: '#EF4444',
+  OCCUPIED: '#F59E0B',
   RESERVED: '#3B82F6',
-  CLEANING: '#F59E0B',
-  MAINTENANCE: '#F97316',
-  DIRTY: '#D97706',
+  OUT_OF_ORDER: '#EF4444',
 };
 
 export default function DashboardPage() {
@@ -76,6 +74,79 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* ─── Quick Actions ─────────────────────────────── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '14px',
+      }}>
+        <button
+          onClick={() => navigate('/reservations?action=checkin')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '18px 22px',
+            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '14px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+            boxShadow: '0 4px 14px rgba(16,185,129,0.25)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(16,185,129,0.35)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(16,185,129,0.25)'; }}
+        >
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '12px',
+            background: 'rgba(255,255,255,0.2)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <LogIn className="w-5 h-5" />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700 }}>Quick Check-In</div>
+            <div style={{ fontSize: '12px', opacity: 0.85 }}>Process a walk-in check-in</div>
+          </div>
+          <Zap className="w-4 h-4 ml-auto" style={{ opacity: 0.6 }} />
+        </button>
+
+        <button
+          onClick={() => navigate('/reservations?action=checkout')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '18px 22px',
+            background: 'linear-gradient(135deg, #A67E44 0%, #8B6930 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '14px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+            boxShadow: '0 4px 14px rgba(166,126,68,0.25)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(166,126,68,0.35)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(166,126,68,0.25)'; }}
+        >
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '12px',
+            background: 'rgba(255,255,255,0.2)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <LogOutIcon className="w-5 h-5" />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700 }}>Quick Check-Out</div>
+            <div style={{ fontSize: '12px', opacity: 0.85 }}>Settle bill & check out</div>
+          </div>
+          <Zap className="w-4 h-4 ml-auto" style={{ opacity: 0.6 }} />
+        </button>
+      </div>
+
       {/* ─── Secondary Metric Cards (clickable) ────────── */}
       <div className="dash-strip">
         {secondaryCards.map((card, idx) => (
@@ -101,7 +172,6 @@ export default function DashboardPage() {
 
       {/* ─── Charts Row 1 ──────────────────────────────── */}
       <div className="dash-charts-row">
-        {/* Booking Trends */}
         <div className="dash-chart-card dash-chart-wide">
           <h3 className="dash-card-title">Booking Trends (14 Days)</h3>
           <div className="dash-chart-area">
@@ -126,7 +196,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Room Status Pie */}
         <div className="dash-chart-card dash-chart-narrow">
           <h3 className="dash-card-title">Room Status</h3>
           <div className="dash-chart-area-sm">
@@ -167,7 +236,6 @@ export default function DashboardPage() {
 
       {/* ─── Charts Row 2 ──────────────────────────────── */}
       <div className="dash-charts-row-half">
-        {/* Revenue Bar Chart */}
         <div className="dash-chart-card">
           <h3 className="dash-card-title">Revenue Trend</h3>
           <div className="dash-chart-area">
@@ -187,7 +255,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Reservations */}
         <div className="dash-chart-card">
           <h3 className="dash-card-title">Recent Reservations</h3>
           <div className="dash-reservations-list">

@@ -26,6 +26,7 @@ export function useCreateReservation() {
       qc.invalidateQueries({ queryKey: ['reservations'] });
       qc.invalidateQueries({ queryKey: ['rooms'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 }
@@ -49,6 +50,7 @@ export function useCheckIn() {
       qc.invalidateQueries({ queryKey: ['reservations'] });
       qc.invalidateQueries({ queryKey: ['rooms'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 }
@@ -62,6 +64,7 @@ export function useCheckOut() {
       qc.invalidateQueries({ queryKey: ['rooms'] });
       qc.invalidateQueries({ queryKey: ['invoices'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 }
@@ -74,6 +77,21 @@ export function useCancelReservation() {
       qc.invalidateQueries({ queryKey: ['reservations'] });
       qc.invalidateQueries({ queryKey: ['rooms'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useShiftRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, newRoomId }: { id: string; newRoomId: string }) =>
+      (await api.post(`/reservations/${id}/shift-room`, { newRoomId })).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reservations'] });
+      qc.invalidateQueries({ queryKey: ['rooms'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 }

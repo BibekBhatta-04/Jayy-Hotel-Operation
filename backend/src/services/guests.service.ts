@@ -46,9 +46,12 @@ export class GuestService {
   }
 
   async deleteGuest(id: string) {
-    const reservations = await prisma.reservation.count({ where: { guestId: id } });
-    if (reservations > 0) {
-      throw Object.assign(new Error('Cannot delete guest with reservation history'), { statusCode: 400 });
+    // Only block if guest has ACTIVE reservations (Confirmed or Checked-In)
+    const activeReservations = await prisma.reservation.count({
+      where: { guestId: id, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
+    });
+    if (activeReservations > 0) {
+      throw Object.assign(new Error('Cannot delete guest with active reservations'), { statusCode: 400 });
     }
     return prisma.guest.delete({ where: { id } });
   }

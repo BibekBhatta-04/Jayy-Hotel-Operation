@@ -9,10 +9,12 @@ const prisma = new PrismaClient({
     },
   },
 });
+
 async function main() {
   console.log('Seeding database...');
 
   // ─── Clean existing data (in correct order for FK constraints) ─────
+  await prisma.notification.deleteMany();
   await prisma.invoiceItem.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.reservation.deleteMany();
@@ -48,12 +50,11 @@ async function main() {
 
   console.log('Users seeded');
 
-  // ─── Room Types ─────────────────────────────────────
+  // ─── Room Types (no pricing) ────────────────────────
   const doubleType = await prisma.roomType.create({
     data: {
       name: 'Double',
       description: 'Comfortable double room for 2 adults',
-      basePrice: 3500,
       maxOccupancy: 2,
       amenities: ['Wi-Fi', 'TV', 'AC', 'Hot Water', 'Room Service'],
     },
@@ -63,7 +64,6 @@ async function main() {
     data: {
       name: 'Twin',
       description: 'Twin-bed room for 2 adults',
-      basePrice: 3500,
       maxOccupancy: 2,
       amenities: ['Wi-Fi', 'TV', 'AC', 'Hot Water', 'Room Service'],
     },
@@ -73,7 +73,6 @@ async function main() {
     data: {
       name: 'Triple',
       description: 'Spacious triple room for 3 adults',
-      basePrice: 4500,
       maxOccupancy: 3,
       amenities: ['Wi-Fi', 'TV', 'AC', 'Hot Water', 'Room Service', 'Mini Bar'],
     },
@@ -83,7 +82,6 @@ async function main() {
     data: {
       name: 'Family',
       description: 'Large family room for 3 adults and 1 child',
-      basePrice: 5500,
       maxOccupancy: 4,
       amenities: ['Wi-Fi', 'TV', 'AC', 'Hot Water', 'Room Service', 'Extra Beds', 'Family Friendly'],
     },
@@ -93,7 +91,6 @@ async function main() {
     data: {
       name: 'Suite',
       description: 'Premium suite for 4 adults and 1 child with luxury amenities',
-      basePrice: 8500,
       maxOccupancy: 5,
       amenities: ['Wi-Fi', 'TV', 'AC', 'Hot Water', 'Room Service', 'Mini Bar', 'City View', 'Bathtub', 'Lounge Area', 'King Bed'],
     },
@@ -103,34 +100,28 @@ async function main() {
 
   // ─── Rooms (22 rooms across 6 floors) ───────────────
   const roomsData = [
-    // Floor 1
-    { roomNumber: '101', floor: 1, roomTypeId: familyType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '102', floor: 1, roomTypeId: twinType.id,    status: 'OCCUPIED' as RoomStatus },
-    { roomNumber: '103', floor: 1, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '104', floor: 1, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    // Floor 2
-    { roomNumber: '201', floor: 2, roomTypeId: familyType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '202', floor: 2, roomTypeId: twinType.id,    status: 'RESERVED' as RoomStatus },
-    { roomNumber: '203', floor: 2, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '204', floor: 2, roomTypeId: doubleType.id,  status: 'OCCUPIED' as RoomStatus },
-    // Floor 3
-    { roomNumber: '301', floor: 3, roomTypeId: familyType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '302', floor: 3, roomTypeId: twinType.id,    status: 'CLEANING' as RoomStatus },
-    { roomNumber: '303', floor: 3, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '304', floor: 3, roomTypeId: twinType.id,    status: 'AVAILABLE' as RoomStatus },
-    // Floor 4
-    { roomNumber: '401', floor: 4, roomTypeId: tripleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '402', floor: 4, roomTypeId: twinType.id,    status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '403', floor: 4, roomTypeId: doubleType.id,  status: 'MAINTENANCE' as RoomStatus },
-    { roomNumber: '404', floor: 4, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    // Floor 5
-    { roomNumber: '501', floor: 5, roomTypeId: tripleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '502', floor: 5, roomTypeId: twinType.id,    status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '503', floor: 5, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '504', floor: 5, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
-    // Floor 6
-    { roomNumber: '601', floor: 6, roomTypeId: suiteType.id,   status: 'AVAILABLE' as RoomStatus },
-    { roomNumber: '603', floor: 6, roomTypeId: doubleType.id,  status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '101', floor: 1, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '102', floor: 1, roomTypeId: twinType.id, status: 'OCCUPIED' as RoomStatus },
+    { roomNumber: '103', floor: 1, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '104', floor: 1, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '201', floor: 2, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '202', floor: 2, roomTypeId: twinType.id, status: 'RESERVED' as RoomStatus },
+    { roomNumber: '203', floor: 2, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '204', floor: 2, roomTypeId: doubleType.id, status: 'OCCUPIED' as RoomStatus },
+    { roomNumber: '301', floor: 3, roomTypeId: familyType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '302', floor: 3, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '303', floor: 3, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '304', floor: 3, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '401', floor: 4, roomTypeId: tripleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '402', floor: 4, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '403', floor: 4, roomTypeId: doubleType.id, status: 'OUT_OF_ORDER' as RoomStatus },
+    { roomNumber: '404', floor: 4, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '501', floor: 5, roomTypeId: tripleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '502', floor: 5, roomTypeId: twinType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '503', floor: 5, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '504', floor: 5, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '601', floor: 6, roomTypeId: suiteType.id, status: 'AVAILABLE' as RoomStatus },
+    { roomNumber: '603', floor: 6, roomTypeId: doubleType.id, status: 'AVAILABLE' as RoomStatus },
   ];
 
   const rooms = [];
@@ -143,14 +134,14 @@ async function main() {
 
   // ─── Guests ─────────────────────────────────────────
   const guestsData = [
-    { name: 'Rajesh Sharma', email: 'rajesh.sharma@email.com', phone: '+977-9841234567', idNumber: 'NP-12345678', address: 'Kathmandu, Nepal', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'Nepali', passportNo: 'NP12345678', pax: 2, plan: 'BB', agent: 'FIT' },
-    { name: 'Priya Thapa', email: 'priya.thapa@email.com', phone: '+977-9851234567', idNumber: 'NP-23456789', address: 'Pokhara, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepali', passportNo: 'NP23456789', pax: 1, plan: 'EP', agent: 'Phone' },
-    { name: 'John Smith', email: 'john.smith@email.com', phone: '+1-5551234567', idNumber: 'US-34567890', address: 'New York, USA', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'American', passportNo: 'US34567890', pax: 2, plan: 'MAP', agent: 'OTA' },
-    { name: 'Anita Gurung', email: 'anita.gurung@email.com', phone: '+977-9861234567', idNumber: 'NP-45678901', address: 'Lalitpur, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepali', passportNo: 'NP45678901', pax: 1, plan: 'EP', agent: 'FIT' },
-    { name: 'David Chen', email: 'david.chen@email.com', phone: '+86-13912345678', idNumber: 'CN-56789012', address: 'Beijing, China', maritalStatus: 'Married', occupancyType: 'Family', nationality: 'Chinese', passportNo: 'CN56789012', pax: 4, plan: 'AP', agent: 'Agency' },
-    { name: 'Sita Adhikari', email: 'sita.adhikari@email.com', phone: '+977-9871234567', idNumber: 'NP-67890123', address: 'Bharatpur, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepali', passportNo: 'NP67890123', pax: 1, plan: 'EP', agent: 'Whatsapp' },
-    { name: 'Michael Brown', email: 'michael.brown@email.com', phone: '+44-7911234567', idNumber: 'UK-78901234', address: 'London, UK', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'British', passportNo: 'UK78901234', pax: 1, plan: 'BB', agent: 'Email' },
-    { name: 'Kamala Basnet', email: 'kamala.basnet@email.com', phone: '+977-9881234567', idNumber: 'NP-89012345', address: 'Biratnagar, Nepal', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'Nepali', passportNo: 'NP89012345', pax: 2, plan: 'MAP', agent: 'Phone' },
+    { name: 'Rajesh Sharma', email: 'rajesh.sharma@email.com', phone: '+977-9841234567', idNumber: 'NP-12345678', address: 'Kathmandu, Nepal', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'Nepal', passportNo: 'NP12345678', pax: 2, maleCount: 1, femaleCount: 1, plan: 'BB', agent: 'FIT' },
+    { name: 'Priya Thapa', email: 'priya.thapa@email.com', phone: '+977-9851234567', idNumber: 'NP-23456789', address: 'Pokhara, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepal', passportNo: 'NP23456789', pax: 1, maleCount: 0, femaleCount: 1, plan: 'EP', agent: 'Phone' },
+    { name: 'John Smith', email: 'john.smith@email.com', phone: '+1-5551234567', idNumber: 'US-34567890', address: 'New York, USA', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'United States', passportNo: 'US34567890', pax: 2, maleCount: 1, femaleCount: 1, plan: 'MAP', agent: 'OTA' },
+    { name: 'Anita Gurung', email: 'anita.gurung@email.com', phone: '+977-9861234567', idNumber: 'NP-45678901', address: 'Lalitpur, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepal', passportNo: 'NP45678901', pax: 1, maleCount: 0, femaleCount: 1, plan: 'EP', agent: 'FIT' },
+    { name: 'David Chen', email: 'david.chen@email.com', phone: '+86-13912345678', idNumber: 'CN-56789012', address: 'Beijing, China', maritalStatus: 'Married', occupancyType: 'Family', nationality: 'China', passportNo: 'CN56789012', pax: 4, maleCount: 2, femaleCount: 2, plan: 'AP', agent: 'Agency' },
+    { name: 'Sita Adhikari', email: 'sita.adhikari@email.com', phone: '+977-9871234567', idNumber: 'NP-67890123', address: 'Bharatpur, Nepal', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'Nepal', passportNo: 'NP67890123', pax: 1, maleCount: 0, femaleCount: 1, plan: 'EP', agent: 'Whatsapp' },
+    { name: 'Michael Brown', email: 'michael.brown@email.com', phone: '+44-7911234567', idNumber: 'UK-78901234', address: 'London, UK', maritalStatus: 'Single', occupancyType: 'Single', nationality: 'United Kingdom', passportNo: 'UK78901234', pax: 1, maleCount: 1, femaleCount: 0, plan: 'BB', agent: 'Email' },
+    { name: 'Kamala Basnet', email: 'kamala.basnet@email.com', phone: '+977-9881234567', idNumber: 'NP-89012345', address: 'Biratnagar, Nepal', maritalStatus: 'Married', occupancyType: 'Double', nationality: 'Nepal', passportNo: 'NP89012345', pax: 2, maleCount: 1, femaleCount: 1, plan: 'MAP', agent: 'Phone' },
   ];
 
   const guests = [];
@@ -165,31 +156,31 @@ async function main() {
   const today = new Date();
   const reservationsData = [
     {
-      roomId: rooms[1].id, // Room 102 (Occupied, Twin)
+      roomId: rooms[1].id,
       guestId: guests[0].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
       status: 'CHECKED_IN' as ReservationStatus,
       totalAmount: 10500,
-      paymentMethod: 'CREDIT_CARD' as PaymentMethod,
+      paymentMethod: 'CASH' as PaymentMethod,
       adults: 2,
       children: 0,
       createdById: admin.id,
     },
     {
-      roomId: rooms[5].id, // Room 202 (Reserved, Twin)
+      roomId: rooms[5].id,
       guestId: guests[2].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4),
       status: 'CONFIRMED' as ReservationStatus,
       totalAmount: 10500,
-      paymentMethod: 'ONLINE' as PaymentMethod,
+      paymentMethod: 'CARD' as PaymentMethod,
       adults: 2,
       children: 0,
       createdById: receptionist.id,
     },
     {
-      roomId: rooms[7].id, // Room 204 (Occupied, Double)
+      roomId: rooms[7].id,
       guestId: guests[4].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2),
@@ -201,7 +192,7 @@ async function main() {
       createdById: admin.id,
     },
     {
-      roomId: rooms[2].id, // Room 103 (Available, Double)
+      roomId: rooms[2].id,
       guestId: guests[1].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 10),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7),
@@ -213,13 +204,13 @@ async function main() {
       createdById: admin.id,
     },
     {
-      roomId: rooms[0].id, // Room 101 (Available, Family)
+      roomId: rooms[0].id,
       guestId: guests[5].id,
       checkInDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
       checkOutDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3),
       status: 'CONFIRMED' as ReservationStatus,
       totalAmount: 16500,
-      paymentMethod: 'BANK_TRANSFER' as PaymentMethod,
+      paymentMethod: 'ESEWA' as PaymentMethod,
       adults: 3,
       children: 1,
       createdById: receptionist.id,
@@ -258,6 +249,17 @@ async function main() {
   });
 
   console.log('Invoices seeded');
+
+  // ─── Sample Notifications ──────────────────────────
+  await prisma.notification.createMany({
+    data: [
+      { type: 'RESERVATION', title: 'Reservation Created', message: 'Reservation for Rajesh Sharma in Room 102 created', userId: admin.id },
+      { type: 'CHECK_IN', title: 'Guest Checked In', message: 'Rajesh Sharma checked into Room 102', userId: admin.id },
+      { type: 'GUEST', title: 'New Guest Registered', message: 'John Smith has been added to the guest list', userId: admin.id },
+    ],
+  });
+
+  console.log('Notifications seeded');
   console.log('Database seeding completed successfully!');
   console.log('');
   console.log('Login credentials:');
@@ -268,7 +270,7 @@ async function main() {
   console.log('  Floor 1: 101(Family), 102(Twin), 103(Double), 104(Double)');
   console.log('  Floor 2: 201(Family), 202(Twin), 203(Double), 204(Double)');
   console.log('  Floor 3: 301(Family), 302(Twin), 303(Double), 304(Twin)');
-  console.log('  Floor 4: 401(Triple), 402(Twin), 403(Double), 404(Double)');
+  console.log('  Floor 4: 401(Triple), 402(Twin), 403(Double-OOO), 404(Double)');
   console.log('  Floor 5: 501(Triple), 502(Twin), 503(Double), 504(Double)');
   console.log('  Floor 6: 601(Suite), 603(Double)');
 }

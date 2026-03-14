@@ -10,6 +10,7 @@ import guestRoutes from './routes/guests.routes';
 import reservationRoutes from './routes/reservations.routes';
 import invoiceRoutes from './routes/invoices.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import notificationRoutes from './routes/notifications.routes';
 import { startKeepAlive } from './utils/keepAlive';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/guests', guestRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ─── Error Handler ─────────────────────────────────────
 app.use(errorHandler);

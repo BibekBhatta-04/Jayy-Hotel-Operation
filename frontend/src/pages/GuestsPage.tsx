@@ -1,62 +1,74 @@
 import React, { useState } from 'react';
-import { Plus, Search, X, Edit2, Phone, Mail, MapPin, User } from 'lucide-react';
-import { useGuests, useCreateGuest, useUpdateGuest } from '@/hooks/useGuests';
+import { Search, X, Edit2, Trash2, Phone, Mail, MapPin, User } from 'lucide-react';
+import { useGuests, useUpdateGuest, useDeleteGuest } from '@/hooks/useGuests';
+import { useToast } from '@/components/ui/Toast';
 import { formatDate, cn, getStatusColor, getStatusLabel } from '@/lib/utils';
+import { COUNTRIES, getDialCode } from '@/lib/countries';
 import type { Guest } from '@/types';
 
 export default function GuestsPage() {
+  const { addToast } = useToast();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', idNumber: '', address: '', maritalStatus: '', occupancyType: 'Single', nationality: '', passportNo: '', pax: 1, tariff: 0, plan: 'EP', contactNo: '', agent: 'FIT', notes: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', idNumber: '', address: '', maritalStatus: '', occupancyType: 'Single', nationality: '', passportNo: '', pax: 1, maleCount: 0, femaleCount: 0, plan: 'EP', contactNo: '', agent: 'FIT', notes: '' });
 
   const { data: guests, isLoading } = useGuests(search || undefined);
-  const createGuest = useCreateGuest();
   const updateGuest = useUpdateGuest();
+  const deleteGuest = useDeleteGuest();
 
-  const openCreate = () => { setEditingGuest(null); setFormData({ name: '', email: '', phone: '', idNumber: '', address: '', maritalStatus: '', occupancyType: 'Single', nationality: '', passportNo: '', pax: 1, tariff: 0, plan: 'EP', contactNo: '', agent: 'FIT', notes: '' }); setShowForm(true); };
-  const openEdit = (guest: Guest) => { setEditingGuest(guest); setFormData({ name: guest.name, email: guest.email || '', phone: guest.phone, idNumber: guest.idNumber || '', address: guest.address || '', maritalStatus: guest.maritalStatus || '', occupancyType: guest.occupancyType || 'Single', nationality: guest.nationality || '', passportNo: guest.passportNo || '', pax: guest.pax || 1, tariff: guest.tariff || 0, plan: guest.plan || 'EP', contactNo: guest.contactNo || '', agent: guest.agent || 'FIT', notes: guest.notes || '' }); setShowForm(true); };
+  const openEdit = (guest: Guest) => {
+    setEditingGuest(guest);
+    setFormData({ name: guest.name, email: guest.email || '', phone: guest.phone, idNumber: guest.idNumber || '', address: guest.address || '', maritalStatus: guest.maritalStatus || '', occupancyType: guest.occupancyType || 'Single', nationality: guest.nationality || '', passportNo: guest.passportNo || '', pax: guest.pax || 1, maleCount: guest.maleCount || 0, femaleCount: guest.femaleCount || 0, plan: guest.plan || 'EP', contactNo: guest.contactNo || '', agent: guest.agent || 'FIT', notes: guest.notes || '' });
+    setShowForm(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingGuest) {
-        await updateGuest.mutateAsync({ id: editingGuest.id, ...formData });
-      } else {
-        await createGuest.mutateAsync(formData);
-      }
+      await updateGuest.mutateAsync({ id: editingGuest!.id, ...formData });
       setShowForm(false);
+      addToast({ type: 'success', title: 'Guest Updated', message: `${formData.name} updated successfully` });
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to save guest');
+      addToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Failed to update guest' });
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteGuest.mutateAsync(id);
+      setDeleteConfirm(null);
+      addToast({ type: 'success', title: 'Guest Deleted' });
+    } catch (err: any) {
+      setDeleteConfirm(null);
+      addToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Failed to delete guest' });
+    }
+  };
+
+  const handleNationalityChange = (nationality: string) => {
+    const dialCode = getDialCode(nationality);
+    setFormData(p => ({
+      ...p,
+      nationality,
+      phone: dialCode ? `${dialCode}-` : p.phone,
+    }));
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ─── Toolbar ──────────────────────────────────────── */}
+      {/* ─── Toolbar (No Add Guest button) ──────────────── */}
       <div className="page-toolbar">
         <div className="page-toolbar-left">
           <div className="page-search">
             <Search className="page-search-icon" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, phone, or ID..."
-              className="page-search-input"
-            />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, phone, or ID..." className="page-search-input" />
             {search && (
-              <button onClick={() => setSearch('')} className="page-search-clear">
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <button onClick={() => setSearch('')} className="page-search-clear"><X className="w-3.5 h-3.5" /></button>
             )}
           </div>
           {guests && <span className="page-count">{guests.length} guest{guests.length !== 1 ? 's' : ''}</span>}
-        </div>
-        <div className="page-toolbar-right">
-          <button onClick={openCreate} className="btn-primary">
-            <Plus className="w-4 h-4" /> Add Guest
-          </button>
         </div>
       </div>
 
@@ -105,9 +117,14 @@ export default function GuestsPage() {
                       </span>
                     </td>
                     <td className="page-td page-td-right">
-                      <button onClick={(e) => { e.stopPropagation(); openEdit(guest); }} className="btn-icon" title="Edit guest">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(guest); }} className="btn-icon" title="Edit guest">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(guest.id); }} className="btn-icon danger" title="Delete guest">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -119,6 +136,27 @@ export default function GuestsPage() {
           <div className="page-table-footer">Showing {guests.length} guest{guests.length !== 1 ? 's' : ''}</div>
         )}
       </div>
+
+      {/* ─── Delete Confirmation Dialog ────────────────── */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-card" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Trash2 className="w-5 h-5" style={{ color: '#EF4444' }} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-hotel-dark)', marginBottom: '8px' }}>Delete Guest?</h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--color-hotel-gray)', marginBottom: '24px' }}>This action cannot be undone. Are you sure?</p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button onClick={() => setDeleteConfirm(null)} className="btn-secondary" style={{ minWidth: '100px' }}>Cancel</button>
+                <button onClick={() => handleDelete(deleteConfirm)} className="btn-primary" style={{ minWidth: '100px', background: '#EF4444' }} disabled={deleteGuest.isPending}>
+                  {deleteGuest.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Guest Detail Drawer ──────────────────────────── */}
       {selectedGuest && selectedGuest.reservations && (
@@ -164,12 +202,12 @@ export default function GuestsPage() {
         </div>
       )}
 
-      {/* ─── Guest Form Modal ─────────────────────────────── */}
-      {showForm && (
+      {/* ─── Guest Edit Form Modal ─────────────────────────── */}
+      {showForm && editingGuest && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">{editingGuest ? 'Edit Guest' : 'Add Guest'}</h3>
+              <h3 className="modal-title">Edit Guest</h3>
               <button onClick={() => setShowForm(false)} className="btn-icon"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -178,31 +216,36 @@ export default function GuestsPage() {
                 <input value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} className="form-input" required />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className="form-label">Nationality</label>
+                  <select value={formData.nationality} onChange={(e) => handleNationalityChange(e.target.value)} className="form-select">
+                    <option value="">Select</option>
+                    {COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.name} ({c.dialCode})</option>)}
+                  </select>
+                </div>
+                <div><label className="form-label">Passport No</label><input value={formData.passportNo} onChange={(e) => setFormData(p => ({ ...p, passportNo: e.target.value }))} className="form-input" /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div><label className="form-label">Phone *</label><input value={formData.phone} onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" required /></div>
                 <div><label className="form-label">Email</label><input type="email" value={formData.email} onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))} className="form-input" /></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div><label className="form-label">ID Number</label><input value={formData.idNumber} onChange={(e) => setFormData(p => ({ ...p, idNumber: e.target.value }))} className="form-input" /></div>
-                <div><label className="form-label">Marital Status</label><select value={formData.maritalStatus} onChange={(e) => setFormData(p => ({ ...p, maritalStatus: e.target.value }))} className="form-select"><option value="">Select</option><option value="Single">Single</option><option value="Married">Married</option><option value="Other">Other</option></select></div>
-              </div>
               <div><label className="form-label">Address</label><input value={formData.address} onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))} className="form-input" /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div><label className="form-label">Nationality</label><input value={formData.nationality} onChange={(e) => setFormData(p => ({ ...p, nationality: e.target.value }))} className="form-input" placeholder="e.g. Nepali" /></div>
-                <div><label className="form-label">Passport No</label><input value={formData.passportNo} onChange={(e) => setFormData(p => ({ ...p, passportNo: e.target.value }))} className="form-input" /></div>
-              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div><label className="form-label">Pax</label><input type="number" min={1} value={formData.pax} onChange={(e) => setFormData(p => ({ ...p, pax: parseInt(e.target.value) || 1 }))} className="form-input" /></div>
-                <div><label className="form-label">Tariff</label><input type="number" step="0.01" min={0} value={formData.tariff} onChange={(e) => setFormData(p => ({ ...p, tariff: parseFloat(e.target.value) || 0 }))} className="form-input" /></div>
+                <div><label className="form-label">Pax (Total)</label><input type="number" min={1} value={formData.pax} onChange={(e) => setFormData(p => ({ ...p, pax: parseInt(e.target.value) || 1 }))} className="form-input" /></div>
+                <div><label className="form-label">Male Count</label><input type="number" min={0} value={formData.maleCount} onChange={(e) => setFormData(p => ({ ...p, maleCount: parseInt(e.target.value) || 0 }))} className="form-input" /></div>
+                <div><label className="form-label">Female Count</label><input type="number" min={0} value={formData.femaleCount} onChange={(e) => setFormData(p => ({ ...p, femaleCount: parseInt(e.target.value) || 0 }))} className="form-input" /></div>
+              </div>
+              {formData.maleCount + formData.femaleCount > 0 && formData.maleCount + formData.femaleCount !== formData.pax && (
+                <p style={{ fontSize: '12px', color: '#EF4444' }}>⚠ Male ({formData.maleCount}) + Female ({formData.femaleCount}) should equal Pax ({formData.pax})</p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div><label className="form-label">Plan</label><select value={formData.plan} onChange={(e) => setFormData(p => ({ ...p, plan: e.target.value }))} className="form-select"><option value="EP">EP</option><option value="BB">BB</option><option value="MAP">MAP</option><option value="AP">AP</option></select></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div><label className="form-label">Contact No</label><input value={formData.contactNo} onChange={(e) => setFormData(p => ({ ...p, contactNo: e.target.value }))} className="form-input" /></div>
                 <div><label className="form-label">Agent</label><select value={formData.agent} onChange={(e) => setFormData(p => ({ ...p, agent: e.target.value }))} className="form-select"><option value="FIT">FIT</option><option value="Agency">Agency</option><option value="Phone">Phone</option><option value="Email">Email</option><option value="OTA">OTA</option><option value="Whatsapp">Whatsapp</option></select></div>
+                <div><label className="form-label">Occupancy Type</label><select value={formData.occupancyType} onChange={(e) => setFormData(p => ({ ...p, occupancyType: e.target.value }))} className="form-select"><option value="Single">Single</option><option value="Double">Double</option><option value="Family">Family</option><option value="Group">Group</option></select></div>
               </div>
-              <div><label className="form-label">Occupancy Type</label><select value={formData.occupancyType} onChange={(e) => setFormData(p => ({ ...p, occupancyType: e.target.value }))} className="form-select"><option value="Single">Single</option><option value="Double">Double</option><option value="Family">Family</option><option value="Group">Group</option></select></div>
               <div><label className="form-label">Remarks</label><textarea value={formData.notes} onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))} className="form-textarea" rows={2} placeholder="Any special remarks..." /></div>
-              <button type="submit" disabled={createGuest.isPending || updateGuest.isPending} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                {createGuest.isPending || updateGuest.isPending ? 'Saving...' : editingGuest ? 'Update Guest' : 'Add Guest'}
+              <button type="submit" disabled={updateGuest.isPending} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                {updateGuest.isPending ? 'Saving...' : 'Update Guest'}
               </button>
             </form>
           </div>
