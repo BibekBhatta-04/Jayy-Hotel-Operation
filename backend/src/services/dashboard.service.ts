@@ -7,43 +7,38 @@ export class DashboardService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [
-      totalRooms,
-      availableRooms,
-      occupiedRooms,
-      arrivalsToday,
-      departuresToday,
-      newBookingsToday,
-      revenueToday,
-      totalGuests,
-    ] = await Promise.all([
-      prisma.room.count(),
-      prisma.room.count({ where: { status: 'AVAILABLE' } }),
-      prisma.room.count({ where: { status: 'OCCUPIED' } }),
-      prisma.reservation.count({
-        where: {
-          checkInDate: { gte: today, lt: tomorrow },
-          status: { in: ['CONFIRMED', 'CHECKED_IN'] },
-        },
-      }),
-      prisma.reservation.count({
-        where: {
-          checkOutDate: { gte: today, lt: tomorrow },
-          status: { in: ['CHECKED_IN', 'CHECKED_OUT'] },
-        },
-      }),
-      prisma.reservation.count({
-        where: { createdAt: { gte: today, lt: tomorrow } },
-      }),
-      prisma.invoice.aggregate({
-        where: {
-          createdAt: { gte: today, lt: tomorrow },
-          paymentStatus: 'PAID',
-        },
-        _sum: { totalAmount: true },
-      }),
-      prisma.guest.count(),
-    ]);
+    // Execute sequentially to prevent database connection pool limits
+    const totalRooms = await prisma.room.count();
+    const availableRooms = await prisma.room.count({ where: { status: 'AVAILABLE' } });
+    const occupiedRooms = await prisma.room.count({ where: { status: 'OCCUPIED' } });
+    
+    const arrivalsToday = await prisma.reservation.count({
+      where: {
+        checkInDate: { gte: today, lt: tomorrow },
+        status: { in: ['CONFIRMED', 'CHECKED_IN'] },
+      },
+    });
+
+    const departuresToday = await prisma.reservation.count({
+      where: {
+        checkOutDate: { gte: today, lt: tomorrow },
+        status: { in: ['CHECKED_IN', 'CHECKED_OUT'] },
+      },
+    });
+
+    const newBookingsToday = await prisma.reservation.count({
+      where: { createdAt: { gte: today, lt: tomorrow } },
+    });
+
+    const revenueToday = await prisma.invoice.aggregate({
+      where: {
+        createdAt: { gte: today, lt: tomorrow },
+        paymentStatus: 'PAID',
+      },
+      _sum: { totalAmount: true },
+    });
+
+    const totalGuests = await prisma.guest.count();
 
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
@@ -76,36 +71,26 @@ export class DashboardService {
 
     const results = [];
     
-    // Chunk execution to prevent "MaxClientsInSessionMode" Postgres errors
-    // We execute 7 days of queries at a time (14 DB calls per chunk)
-    const chunkSize = 7;
-    for (let i = 0; i < dateRanges.length; i += chunkSize) {
-      const chunk = dateRanges.slice(i, i + chunkSize);
+    // Execute strictly sequentially using a standard for...of loop
+    // Guarantees only 1 API connection is utilized at any given time.
+    for (const { date, nextDay, dateString } of dateRanges) {
+      const bookings = await prisma.reservation.count({
+        where: { createdAt: { gte: date, lt: nextDay } },
+      });
       
-      const chunkResults = await Promise.all(
-        chunk.map(async ({ date, nextDay, dateString }) => {
-          const [bookings, revenue] = await Promise.all([
-            prisma.reservation.count({
-              where: { createdAt: { gte: date, lt: nextDay } },
-            }),
-            prisma.invoice.aggregate({
-              where: {
-                createdAt: { gte: date, lt: nextDay },
-                paymentStatus: { in: ['PAID', 'PARTIAL'] },
-              },
-              _sum: { totalAmount: true },
-            }),
-          ]);
-          
-          return {
-            date: dateString,
-            bookings,
-            revenue: Number(revenue._sum.totalAmount || 0),
-          };
-        })
-      );
+      const revenue = await prisma.invoice.aggregate({
+        where: {
+          createdAt: { gte: date, lt: nextDay },
+          paymentStatus: { in: ['PAID', 'PARTIAL'] },
+        },
+        _sum: { totalAmount: true },
+      });
       
-      results.push(...chunkResults);
+      results.push({
+        date: dateString,
+        bookings,
+        revenue: Number(revenue._sum.totalAmount || 0),
+      });
     }
 
     return results;
