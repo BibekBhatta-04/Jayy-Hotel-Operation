@@ -74,29 +74,39 @@ export class DashboardService {
       return { date, nextDay, dateString: date.toISOString().split('T')[0] };
     });
 
-    // Run all 28 queries (14 bookings, 14 revenue) in parallel instead of sequentially
-    const results = await Promise.all(
-      dateRanges.map(async ({ date, nextDay, dateString }) => {
-        const [bookings, revenue] = await Promise.all([
-          prisma.reservation.count({
-            where: { createdAt: { gte: date, lt: nextDay } },
-          }),
-          prisma.invoice.aggregate({
-            where: {
-              createdAt: { gte: date, lt: nextDay },
-              paymentStatus: { in: ['PAID', 'PARTIAL'] },
-            },
-            _sum: { totalAmount: true },
-          }),
-        ]);
-        
-        return {
-          date: dateString,
-          bookings,
-          revenue: Number(revenue._sum.totalAmount || 0),
-        };
-      })
-    );
+    const results = [];
+    
+    // Chunk execution to prevent "MaxClientsInSessionMode" Postgres errors
+    // We execute 7 days of queries at a time (14 DB calls per chunk)
+    const chunkSize = 7;
+    for (let i = 0; i < dateRanges.length; i += chunkSize) {
+      const chunk = dateRanges.slice(i, i + chunkSize);
+      
+      const chunkResults = await Promise.all(
+        chunk.map(async ({ date, nextDay, dateString }) => {
+          const [bookings, revenue] = await Promise.all([
+            prisma.reservation.count({
+              where: { createdAt: { gte: date, lt: nextDay } },
+            }),
+            prisma.invoice.aggregate({
+              where: {
+                createdAt: { gte: date, lt: nextDay },
+                paymentStatus: { in: ['PAID', 'PARTIAL'] },
+              },
+              _sum: { totalAmount: true },
+            }),
+          ]);
+          
+          return {
+            date: dateString,
+            bookings,
+            revenue: Number(revenue._sum.totalAmount || 0),
+          };
+        })
+      );
+      
+      results.push(...chunkResults);
+    }
 
     return results;
   }
