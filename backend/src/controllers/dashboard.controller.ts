@@ -29,6 +29,13 @@ export class DashboardController {
       res.json(reservations);
     } catch (err) { next(err); }
   }
+
+  async getAll(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const allData = await dashboardService.getAllDashboardData();
+      res.json(allData);
+    } catch (err) { next(err); }
+  }
 }
 
 export const dashboardController = new DashboardController();

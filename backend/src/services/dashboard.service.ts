@@ -118,6 +118,28 @@ export class DashboardService {
       },
     });
   }
+
+  // A completely consolidated endpoint to guarantee sequential frontend loading
+  async getAllDashboardData() {
+    // 1. Stats
+    const stats = await this.getStats();
+    
+    // 2. Trends
+    const trends = await this.getBookingTrends();
+    
+    // 3. Room Status
+    const roomStatus = await this.getRoomStatusOverview();
+    
+    // 4. Recent Reservations
+    const recentReservations = await this.getRecentReservations();
+    
+    return {
+      stats,
+      trends,
+      roomStatus,
+      recentReservations
+    };
+  }
 }
 
 export const dashboardService = new DashboardService();

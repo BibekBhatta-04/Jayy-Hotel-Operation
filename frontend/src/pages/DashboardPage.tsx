@@ -4,7 +4,7 @@ import {
   LogIn, LogOut as LogOutIcon, Percent, DollarSign,
   BedDouble, Users, CalendarDays, TrendingUp, Zap
 } from 'lucide-react';
-import { useDashboardStats, useBookingTrends, useRoomStatusOverview, useRecentReservations } from '@/hooks/useDashboard';
+import { useAllDashboardData } from '@/hooks/useDashboard';
 import { formatCurrency, formatDate, formatDateShort, getStatusColor, getStatusLabel, cn } from '@/lib/utils';
 
 // Lazy load Recharts since it's a heavy library
@@ -45,23 +45,26 @@ const ChartSkeleton = () => (
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: trends, isLoading: trendsLoading } = useBookingTrends();
-  const { data: roomStatus, isLoading: roomLoading } = useRoomStatusOverview();
-  const { data: recentReservations, isLoading: reservationsLoading } = useRecentReservations();
+  const { data, isLoading } = useAllDashboardData();
+  
+  // Destructure for the rest of JSX
+  const stats = data?.stats;
+  const trends = data?.trends;
+  const roomStatus = data?.roomStatus;
+  const recentReservations = data?.recentReservations;
 
   const primaryCards = [
-    { label: 'Occupancy Rate', value: statsLoading ? '...' : `${stats?.occupancyRate || 0}%`, icon: Percent, tint: 'tint-gold' },
-    { label: 'Revenue Today', value: statsLoading ? '...' : formatCurrency(stats?.revenueToday || 0), icon: DollarSign, tint: 'tint-green' },
-    { label: 'Arrivals Today', value: statsLoading ? '...' : stats?.arrivalsToday || 0, icon: LogIn, tint: 'tint-blue' },
-    { label: 'Departures Today', value: statsLoading ? '...' : stats?.departuresToday || 0, icon: LogOutIcon, tint: 'tint-orange' },
+    { label: 'Occupancy Rate', value: isLoading ? '...' : `${stats?.occupancyRate || 0}%`, icon: Percent, tint: 'tint-gold' },
+    { label: 'Revenue Today', value: isLoading ? '...' : formatCurrency(stats?.revenueToday || 0), icon: DollarSign, tint: 'tint-green' },
+    { label: 'Arrivals Today', value: isLoading ? '...' : stats?.arrivalsToday || 0, icon: LogIn, tint: 'tint-blue' },
+    { label: 'Departures Today', value: isLoading ? '...' : stats?.departuresToday || 0, icon: LogOutIcon, tint: 'tint-orange' },
   ];
 
   const secondaryCards = [
-    { label: 'Available Rooms', value: statsLoading ? '...' : `${stats?.availableRooms || 0} / ${stats?.totalRooms || 0}`, icon: BedDouble, tint: 'strip-gold', to: '/rooms' },
-    { label: 'New Bookings', value: statsLoading ? '...' : stats?.newBookingsToday || 0, icon: CalendarDays, tint: 'strip-blue', to: '/reservations' },
-    { label: 'Total Guests', value: statsLoading ? '...' : stats?.totalGuests || 0, icon: Users, tint: 'strip-emerald', to: '/guests' },
-    { label: 'Rooms Occupied', value: statsLoading ? '...' : stats?.occupiedRooms || 0, icon: TrendingUp, tint: 'strip-orange', to: '/rooms' },
+    { label: 'Available Rooms', value: isLoading ? '...' : `${stats?.availableRooms || 0} / ${stats?.totalRooms || 0}`, icon: BedDouble, tint: 'strip-gold', to: '/rooms' },
+    { label: 'New Bookings', value: isLoading ? '...' : stats?.newBookingsToday || 0, icon: CalendarDays, tint: 'strip-blue', to: '/reservations' },
+    { label: 'Total Guests', value: isLoading ? '...' : stats?.totalGuests || 0, icon: Users, tint: 'strip-emerald', to: '/guests' },
+    { label: 'Rooms Occupied', value: isLoading ? '...' : stats?.occupiedRooms || 0, icon: TrendingUp, tint: 'strip-orange', to: '/rooms' },
   ];
 
   return (
@@ -182,7 +185,7 @@ export default function DashboardPage() {
         <div className="dash-chart-card dash-chart-wide">
           <h3 className="dash-card-title">Booking Trends (14 Days)</h3>
           <div className="dash-chart-area">
-            {trendsLoading ? <ChartSkeleton /> : (
+            {isLoading ? <ChartSkeleton /> : (
               <Suspense fallback={<ChartSkeleton />}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trends || []}>
@@ -210,7 +213,7 @@ export default function DashboardPage() {
         <div className="dash-chart-card dash-chart-narrow">
           <h3 className="dash-card-title">Room Status</h3>
           <div className="dash-chart-area-sm">
-            {roomLoading ? <ChartSkeleton /> : (
+            {isLoading ? <ChartSkeleton /> : (
               <Suspense fallback={<ChartSkeleton />}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -238,7 +241,7 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="dash-status-legend">
-            {!roomLoading && (roomStatus || []).map((s) => (
+            {!isLoading && (roomStatus || []).map((s) => (
               <div key={s.status} className="dash-legend-item">
                 <div className="dash-legend-dot" style={{ backgroundColor: STATUS_COLORS[s.status] || '#9CA3AF' }} />
                 <span className="dash-legend-label">{getStatusLabel(s.status)}</span>
@@ -254,7 +257,7 @@ export default function DashboardPage() {
         <div className="dash-chart-card">
           <h3 className="dash-card-title">Revenue Trend</h3>
           <div className="dash-chart-area">
-            {trendsLoading ? <ChartSkeleton /> : (
+            {isLoading ? <ChartSkeleton /> : (
               <Suspense fallback={<ChartSkeleton />}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={trends || []}>
@@ -277,7 +280,7 @@ export default function DashboardPage() {
         <div className="dash-chart-card">
           <h3 className="dash-card-title">Recent Reservations</h3>
           <div className="dash-reservations-list">
-            {reservationsLoading ? (
+            {isLoading ? (
               <div style={{ padding: '20px' }}>Loading reservations...</div>
             ) : (
               <>
