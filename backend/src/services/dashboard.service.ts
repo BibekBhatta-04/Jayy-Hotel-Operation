@@ -62,37 +62,43 @@ export class DashboardService {
 
   async getBookingTrends() {
     const days = 14;
-    const trends = [];
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Create an array of the last 14 days
+    const dateRanges = Array.from({ length: days }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() - (days - 1 - i));
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
+      return { date, nextDay, dateString: date.toISOString().split('T')[0] };
+    });
 
-      const [bookings, revenue] = await Promise.all([
-        prisma.reservation.count({
-          where: { createdAt: { gte: date, lt: nextDay } },
-        }),
-        prisma.invoice.aggregate({
-          where: {
-            createdAt: { gte: date, lt: nextDay },
-            paymentStatus: { in: ['PAID', 'PARTIAL'] },
-          },
-          _sum: { totalAmount: true },
-        }),
-      ]);
+    // Run all 28 queries (14 bookings, 14 revenue) in parallel instead of sequentially
+    const results = await Promise.all(
+      dateRanges.map(async ({ date, nextDay, dateString }) => {
+        const [bookings, revenue] = await Promise.all([
+          prisma.reservation.count({
+            where: { createdAt: { gte: date, lt: nextDay } },
+          }),
+          prisma.invoice.aggregate({
+            where: {
+              createdAt: { gte: date, lt: nextDay },
+              paymentStatus: { in: ['PAID', 'PARTIAL'] },
+            },
+            _sum: { totalAmount: true },
+          }),
+        ]);
+        
+        return {
+          date: dateString,
+          bookings,
+          revenue: Number(revenue._sum.totalAmount || 0),
+        };
+      })
+    );
 
-      trends.push({
-        date: date.toISOString().split('T')[0],
-        bookings,
-        revenue: Number(revenue._sum.totalAmount || 0),
-      });
-    }
-
-    return trends;
+    return results;
   }
 
   async getRoomStatusOverview() {
